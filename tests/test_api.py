@@ -29,10 +29,12 @@ def test_predict_risk_high(mock_model):
     # Arrange & Act & Assert
     with patch.object(routes, 'model', mock_model):
         payload = {
-            "IAA": 5.5, "IEG": 2.0, "IPS": 6.0, "IDA": 4.5, "IPV": 7.0
+            "IAA": 5.5, "IEG": 2.0, "IPS": 6.0, "IDA": 4.5, "IPV": 7.0,
+            "Idade": 14, "Fase": "FASE 3", "Pedra": "Quartzo",
+            "Instituicao_de_ensino": "Escola Municipal", "Genero": "M"
         }
         response = client.post("/predict", json=payload)
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["risco_defasagem"] == 1
@@ -42,18 +44,26 @@ def test_predict_risk_low():
     # Arrange & Act & Assert
     low_risk_model = MagicMock()
     low_risk_model.predict_proba.return_value = [[0.9, 0.1]]
-    
+
     with patch.object(routes, 'model', low_risk_model):
-        payload = { "IAA": 10, "IEG": 10, "IPS": 10, "IDA": 10, "IPV": 10 }
+        payload = {
+            "IAA": 10, "IEG": 10, "IPS": 10, "IDA": 10, "IPV": 10,
+            "Idade": 16, "Fase": "FASE 8", "Pedra": "Topázio",
+            "Instituicao_de_ensino": "Escola Estadual", "Genero": "F"
+        }
         response = client.post("/predict", json=payload)
-        
+
         assert response.json()["risco_defasagem"] == 0
         assert "baixo" in response.json()["mensagem"]
 
 def test_predict_model_not_loaded():
     # Arrange & Act & Assert
     with patch.object(routes, 'model', None):
-        payload = { "IAA": 0, "IEG": 0, "IPS": 0, "IDA": 0, "IPV": 0 }
+        payload = {
+            "IAA": 0, "IEG": 0, "IPS": 0, "IDA": 0, "IPV": 0,
+            "Idade": 12, "Fase": "FASE 1", "Pedra": "Quartzo",
+            "Instituicao_de_ensino": "Escola Municipal", "Genero": "M"
+        }
         response = client.post("/predict", json=payload)
         assert response.status_code == 500
         assert "Modelo não carregado" in response.json()["detail"]
@@ -65,10 +75,12 @@ def test_prediction_internal_error():
 
     with patch.object(routes, 'model', mock_model_error):
         payload = {
-            "IAA": 5.5, "IEG": 6.0, "IPS": 7.0, "IDA": 8.0, "IPV": 9.0
+            "IAA": 5.5, "IEG": 6.0, "IPS": 7.0, "IDA": 8.0, "IPV": 9.0,
+            "Idade": 15, "Fase": "FASE 5", "Pedra": "Ametista",
+            "Instituicao_de_ensino": "Escola Particular", "Genero": "F"
         }
         response = client.post("/predict", json=payload)
-        
+
         assert response.status_code == 500
         assert "Erro na predição" in response.json()['detail']
 

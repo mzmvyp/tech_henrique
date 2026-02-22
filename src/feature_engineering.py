@@ -24,7 +24,13 @@ def create_features(df):
     
     # Engenharia de Variáveis Categóricas
     # As pedras representam uma evolução
-    pedra_map = {'Quartzo': 1, 'Ágata': 2, 'Ametista': 3, 'Topázio': 4}
+    # Após clean_data(), os textos ficam em UPPERCASE e sem acentos (NFKD → ASCII)
+    pedra_map = {
+        'QUARTZO': 1, 'Quartzo': 1,
+        'AGATA': 2, 'Ágata': 2, 'Agata': 2,
+        'AMETISTA': 3, 'Ametista': 3,
+        'TOPAZIO': 4, 'Topázio': 4, 'Topazio': 4,
+    }
     
     # Procura todas as colunas que tenham Pedra no nome e cria uma versão numérica
     colunas_pedra = [c for c in df.columns if 'Pedra' in str(c)]
@@ -37,7 +43,11 @@ def create_features(df):
         df['Fase_Num'] = df['Fase'].apply(extrair_fase)        
 
     # Seleção de Features e Remoção de Vazamento (Data Leakage)
+    # Removemos colunas originais de Pedra/Fase (texto) pois já temos as versões numéricas
     cols_to_drop = ['Defasagem', 'Ano_Base', 'RA', 'Nome', 'Nome Anonimizado', 'Data de Nasc']
+    cols_to_drop.extend([c for c in df.columns if 'Pedra' in str(c) and '_Num' not in str(c)])
+    if 'Fase' in df.columns:
+        cols_to_drop.append('Fase')
 
     # Removemos INDE e IAN (Vazamento de dados confirmados)    
     leakage_cols = [c for c in df.columns if 'INDE' in str(c).upper() or 'IAN' in str(c).upper()]

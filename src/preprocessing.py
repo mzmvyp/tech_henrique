@@ -30,8 +30,16 @@ def clean_data(df):
     
     for col in numeric_cols:
         if col in df.columns:
-            # Transforma em string, remove ponto de milhar, troca vírgula por decimal
-            df[col] = df[col].astype(str).str.replace('.', '', regex=False).str.replace(',', '.')        
+            # Converte para string para manipulação
+            s = df[col].astype(str)
+            # Formato BR usa vírgula como decimal (ex: "5,783" ou "7.055,00")
+            # Se contém vírgula, é formato BR: remove ponto de milhar, troca vírgula por ponto
+            # Se não contém vírgula, já está em formato internacional ou é inteiro
+            mask_br = s.str.contains(',', na=False)
+            s_br = s[mask_br].str.replace('.', '', regex=False).str.replace(',', '.')
+            s_int = s[~mask_br]  # Formato internacional - mantém como está
+            df.loc[mask_br, col] = s_br
+            df.loc[~mask_br, col] = s_int
             df[col] = pd.to_numeric(df[col], errors='coerce')
 
     # Transforma Idades incorretas e notas erradas em nulo (NaN)

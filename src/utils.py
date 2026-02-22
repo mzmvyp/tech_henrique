@@ -9,8 +9,8 @@ def load_data(file_paths):
     # Mapas de renomeação para padronizar colunas
     rename_maps = {
         '2022': {
-            'INDE 22': 'INDE', 'Pedra 22': 'Pedra', 'Matem': 'Mat', 
-            'Portug': 'Por', 'Inglês': 'Ing', 'Defas': 'Defasagem', 
+            'INDE 22': 'INDE', 'Pedra 22': 'Pedra', 'Matem': 'Mat',
+            'Portug': 'Por', 'Inglês': 'Ing', 'Defas': 'Defasagem', 'Idade 22': 'Idade',
             'IAA 2022': 'IAA', 'IEG 2022': 'IEG', 'IPS 2022': 'IPS', 'IDA 2022': 'IDA', 'IPV 2022': 'IPV', 'IAN 2022': 'IAN'
         },
         '2023': {
@@ -36,7 +36,10 @@ def load_data(file_paths):
     
     # Selecionamos todas as colunas possíveis inicialmente
     # A filtragem fina será feita no arquivo feature_engineering.py
-    target_cols = ['INDE', 'IAA', 'IEG', 'IPS', 'IDA', 'IPV', 'IAN', 'Defasagem', 'Ano_Base']
+    target_cols = [
+        'INDE', 'IAA', 'IEG', 'IPS', 'IDA', 'IPV', 'IAN', 'Defasagem',
+        'Pedra', 'Fase', 'Idade', 'Instituição de ensino', 'Gênero', 'Ano_Base'
+    ]
     
     df_full = pd.concat(dfs, ignore_index=True)
     cols_existentes = [c for c in target_cols if c in df_full.columns]

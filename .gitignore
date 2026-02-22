@@ -45,7 +45,7 @@ coverage.xml
 .DS_Store
 
 # --- Logs e Banco de Dados Local ---
-logs/ß
+logs/
 *.log
 *.sqlite3
 
