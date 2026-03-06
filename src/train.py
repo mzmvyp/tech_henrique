@@ -27,12 +27,17 @@ def run_training():
     # Habilita o log automático (salva params, métricas e o modelo .pkl)
     mlflow.sklearn.autolog(log_models=False, log_input_examples=False)
 
-    # Definição de Caminhos
-    paths = {
+    # Definição de Caminhos (usa só os arquivos que existirem)
+    paths_base = {
         '2022': 'files/PEDE2022.csv',
         '2023': 'files/PEDE2023.csv',
         '2024': 'files/PEDE2024.csv'
     }
+    paths = {ano: p for ano, p in paths_base.items() if os.path.isfile(p)}
+    if not paths:
+        print("Erro: Nenhum arquivo encontrado em files/ (PEDE2022.csv, PEDE2023.csv ou PEDE2024.csv).")
+        return
+    print(f"         Arquivos a carregar: {list(paths.keys())}")
     
     # Pipeline de Dados
     print("   [1/6] Carregando dados (Utils)...")

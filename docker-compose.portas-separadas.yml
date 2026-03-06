@@ -1,0 +1,49 @@
+# Use este arquivo para subir o Datathon em portas diferentes,
+# assim não conflita com outro sistema (ex.: seu SaaS) na mesma máquina.
+#
+# Como subir:
+#   docker-compose -p datathon -f docker-compose.yml -f docker-compose.portas-separadas.yml up -d --build
+#
+# Serviços nas portas alternativas:
+#   API:        http://localhost:8001  (docs: http://localhost:8001/docs)
+#   MLflow:     http://localhost:5051
+#   Grafana:    http://localhost:3001   (login: admin / admin)
+#   Prometheus: http://localhost:9091
+#   Loki:       3101
+#   Node exporter: 9101
+
+version: '3.8'
+
+services:
+  api:
+    ports:
+      - "8001:8000"
+    container_name: datathon_api
+
+  mlflow:
+    ports:
+      - "5051:5000"
+    container_name: datathon_mlflow
+
+  prometheus:
+    ports:
+      - "9091:9090"
+    container_name: datathon_prometheus
+
+  grafana:
+    ports:
+      - "3001:3000"
+    container_name: datathon_grafana
+
+  node-exporter:
+    ports:
+      - "9101:9100"
+    container_name: datathon_node_exporter
+
+  loki:
+    ports:
+      - "3101:3100"
+    container_name: datathon_loki
+
+  promtail:
+    container_name: datathon_promtail

@@ -1,10 +1,9 @@
 import pandas as pd
-import joblib
 import mlflow
 import mlflow.sklearn
 import logging
 import subprocess
-import re
+import unicodedata
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from app.schemas.aluno_request import AlunoRequest
 from app.schemas.risco_response import RiscoResponse
@@ -37,16 +36,22 @@ mlflow.set_tracking_uri("sqlite:///mlflow.db")
 model_name = "Modelo_Risco_Defasagem"
 alias = "production" # Pega sempre a última versão treinada
 
+model_uri = f"models:/{model_name}@{alias}"
+model = None
 try:
-    model_uri = f"models:/{model_name}@{alias}"
-    logger.info(f"Aplicação iniciando... Modelo a ser carregado: {model_uri}...")   
-    
-    # Carrega o modelo diretamente do mlflow
+    logger.info(f"Aplicação iniciando... Modelo a ser carregado: {model_uri}...")
     model = mlflow.sklearn.load_model(model_uri)
-    logger.info(f"Aplicação iniciada! Modelo carregado: {model_uri}...")       
+    logger.info(f"Aplicação iniciada! Modelo carregado via MLflow: {model_uri}")
 except Exception as e:
     logger.error(f"Erro ao carregar o modelo do MLflow: {e}")
-    model = None
+    # Sem fallback: a ML deve funcionar via MLflow; se falhar, /predict e /reload retornam 500 até corrigir.
+
+def _normalizar_texto(valor):
+    """Aplica a mesma normalização que clean_data usa no treino:
+    remove acentos, converte para maiúsculas e remove espaços extras."""
+    s = str(valor).strip()
+    s = unicodedata.normalize('NFKD', s).encode('ascii', errors='ignore').decode('utf-8')
+    return s.upper()
 
 def executar_treinamento_em_background():
     logger.info("Iniciando o processo de retreinamento (executando src/train.py)...")
@@ -89,7 +94,9 @@ def predict_risk(aluno: AlunoRequest):
     FEATURE_IAA.set(aluno.IAA)
     FEATURE_IEG.set(aluno.IEG)    
     
-    # Converter input para DataFrame
+    # Converter input para DataFrame (nomes iguais aos do treino: load_data + create_features)
+    fase_num = extrair_fase(_normalizar_texto(aluno.Fase))
+
     data = {
         "IAA": [aluno.IAA],
         "IEG": [aluno.IEG],
@@ -97,24 +104,19 @@ def predict_risk(aluno: AlunoRequest):
         "IDA": [aluno.IDA],
         "IPV": [aluno.IPV],
         "Idade": [aluno.Idade],
-        "Fase": [aluno.Fase],
-        "Pedra": [aluno.Pedra], # Usado apenas para calcular a pedra numérica
-        "Instituição de ensino": [aluno.Instituicao_de_ensino],
-        "Gênero": [aluno.Genero]
+        "Fase": [fase_num],
+        "Pedra": [_normalizar_texto(aluno.Pedra)],
+        "Instituicao_de_ensino": [_normalizar_texto(aluno.Instituicao_de_ensino)],
+        "Genero": [_normalizar_texto(aluno.Genero)]
     }
     df_input = pd.DataFrame(data)
     
-    # Engenharia de Features
+    # Engenharia de Features (mesmas do create_features no treino)
     df_input['IEG_x_IDA'] = df_input['IEG'] * df_input['IDA']
     df_input['IEG_x_IAA'] = df_input['IEG'] * df_input['IAA']
     df_input['IPS_x_IDA'] = df_input['IPS'] * df_input['IDA']
 
-    # Conversão da pedra para número
-    pedra_map = {'Quartzo': 1, 'Ágata': 2, 'Ametista': 3, 'Topázio': 4}
-    # Se a pedra vier incorreta na requisição, assume 1
-    df_input['Pedra_Num'] = df_input['Pedra'].map(pedra_map).fillna(1)    
-
-    df_input['Fase_Num'] = df_input['Fase'].apply(extrair_fase)
+    df_input['Fase_Num'] = [fase_num]
     
     # Predição
     try:
@@ -144,16 +146,16 @@ def predict_risk(aluno: AlunoRequest):
 @router.post("/reload")
 def reload_model():
     """
-    Rota administrativa para recarregar o modelo em memória sem precisar reiniciar o servidor Uvicorn.
+    Rota administrativa para recarregar o modelo em memória via MLflow (sem fallback).
     """
     global model
-    try:  
-        logger.info(f"Recarga de Modelo solicitada. Modelo a ser carregado: {model_uri}...")   
+    try:
+        logger.info(f"Recarga de Modelo solicitada. Modelo a ser carregado: {model_uri}...")
         model = mlflow.sklearn.load_model(model_uri)
-        return {"status": "sucesso", "mensagem": "Modelo atualizado com a última versão de produção!"}
+        return {"status": "sucesso", "mensagem": "Modelo atualizado com a última versão de produção (MLflow)!"}
     except Exception as e:
         logger.error(f"Erro ao recarregar o modelo {model_uri}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao recarregar o modelo: {str(e)}")    
+        raise HTTPException(status_code=500, detail=f"Erro ao recarregar o modelo via MLflow: {str(e)}")    
     
 @router.post("/retrain")
 def retrain_model(background_tasks: BackgroundTasks):

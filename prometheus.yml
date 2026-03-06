@@ -4,7 +4,8 @@ global:
 scrape_configs:
   - job_name: "fastapi_modelo"
     static_configs:
-      - targets: ["host.docker.internal:8000"]
+      # Dentro do Docker Compose, a API está no serviço "api"
+      - targets: ["api:8000"]
   - job_name: "machine_resources"
     static_configs:
       - targets: ["node-exporter:9100"]

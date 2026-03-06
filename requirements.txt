@@ -6,7 +6,7 @@ pydantic
 pytest 
 pytest-cov 
 httpx
-mlflow
+mlflow==3.10.0
 prometheus-fastapi-instrumentator 
 prometheus-client
 matplotlib

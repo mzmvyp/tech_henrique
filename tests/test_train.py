@@ -12,8 +12,9 @@ from src.train import run_training
 @patch('src.train.joblib.dump')
 @patch('src.train.mlflow')
 @patch('src.train.infer_signature') 
-@patch('os.makedirs') 
-def test_run_training_pipeline(mock_makedirs, mock_infer, mock_mlflow, mock_dump, mock_eval, mock_search, 
+@patch('os.makedirs')
+@patch('os.path.isfile', return_value=True)
+def test_run_training_pipeline(mock_isfile, mock_makedirs, mock_infer, mock_mlflow, mock_dump, mock_eval, mock_search, 
                                mock_split, mock_features, mock_clean, mock_load):
     
     # 1. Configurando os retornos dos Mocks para o fluxo seguir
@@ -48,8 +49,9 @@ def test_run_training_pipeline(mock_makedirs, mock_infer, mock_mlflow, mock_dump
     
 
 @patch('src.train.load_data')
-@patch('src.train.mlflow') # Mockamos o MLflow aqui também para não criar o banco de dados
-def test_run_training_file_error(mock_mlflow, mock_load):
+@patch('src.train.mlflow')
+@patch('os.path.isfile', return_value=True)
+def test_run_training_file_error(mock_isfile, mock_mlflow, mock_load):
     # Arrange
     mock_load.side_effect = FileNotFoundError("Arquivo sumiu")
     

@@ -17,10 +17,11 @@ services:
   mlflow:
     build: .
     container_name: mflow
+    working_dir: /app
     ports:
       - "5050:5000"
-    # Iniciamos a interface gráfica do MLflow na porta 5000
-    command: mlflow ui --backend-store-uri sqlite:///mlflow.db --host 0.0.0.0 --port 5000
+    # Caminho absoluto /app/mlflow.db evita "unable to open database file" no volume
+    command: mlflow ui --backend-store-uri sqlite:////app/mlflow.db --host 0.0.0.0 --port 5000
     volumes:
       - ./:/app
     restart: unless-stopped    
@@ -31,6 +32,8 @@ services:
       - "9090:9090"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - api
 
   grafana:
     image: grafana/grafana:latest
